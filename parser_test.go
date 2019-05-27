@@ -31,7 +31,7 @@ lease 172.24.43.4 {
 `)
 
 	buf := bytes.NewBuffer(in)
-	i, _ := Parse(buf)
+	i := Parse(buf)
 	if i == nil {
 		t.Errorf("Expect one lease")
 	}

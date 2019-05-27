@@ -14,7 +14,7 @@ var (
 
 /*Parse reads from a dhcpd.leases file and returns a list of leases.  Unknown fields are ignored
  */
-func Parse(r io.Reader) ([]Lease, error) {
+func Parse(r io.Reader) []Lease {
 	toLease := func(d []byte, atEOF bool) (advance int, token []byte, err error) {
 		if atEOF {
 			return 0, nil, fmt.Errorf("Unable to parse")
@@ -39,5 +39,5 @@ func Parse(r io.Reader) ([]Lease, error) {
 		rtn = append(rtn, l)
 
 	}
-	return rtn, nil
+	return rtn
 }
