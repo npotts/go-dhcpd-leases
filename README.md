@@ -1,5 +1,5 @@
 
-[![GoDoc](https://godoc.org/github.com/npotts/arduino/go-dhcpd-leases?status.svg)](https://godoc.org/github.com/npotts/arduino/go-dhcpd-leases)
+[![GoDoc](https://godoc.org/github.com/npotts/go-dhcpd-leases?status.svg)](https://godoc.org/github.com/npotts/go-dhcpd-leases)
 
 # Go module to parse dhcpd's lease file
 
