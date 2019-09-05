@@ -2,6 +2,7 @@ package leases
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 	"time"
 )
@@ -34,6 +35,10 @@ lease 172.24.43.4 {
 	i := Parse(buf)
 	if i == nil {
 		t.Errorf("Expect one lease")
+	}
+
+	for _, ii := range i {
+		fmt.Println("ip: ", ii.IP)
 	}
 }
 

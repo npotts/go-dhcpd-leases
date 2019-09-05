@@ -75,7 +75,7 @@ type Lease struct {
 
 var (
 	decoders = map[*regexp.Regexp]func(*Lease, string){
-		regexp.MustCompile("(.*) {"):                           func(l *Lease, line string) { l.IP = net.ParseIP(line) },
+		regexp.MustCompile("([\\d\\.]+) {"):                    func(l *Lease, line string) { l.IP = net.ParseIP(line) },
 		regexp.MustCompile("cltt (?P<D>.*);"):                  func(l *Lease, line string) { l.Cltt = parseTime(line) },
 		regexp.MustCompile("starts (?P<D>.*);"):                func(l *Lease, line string) { l.Starts = parseTime(line) },
 		regexp.MustCompile("ends (?P<D>.*);"):                  func(l *Lease, line string) { l.Ends = parseTime(line) },
