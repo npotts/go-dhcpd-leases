@@ -75,18 +75,18 @@ type Lease struct {
 
 var (
 	decoders = map[*regexp.Regexp]func(*Lease, string){
-		regexp.MustCompile("(.*) {"):                         func(l *Lease, line string) { l.IP = net.ParseIP(line) },
-		regexp.MustCompile("cltt (?P<D>.*);"):                func(l *Lease, line string) { l.Cltt = parseTime(line) },
-		regexp.MustCompile("starts (?P<D>.*);"):              func(l *Lease, line string) { l.Starts = parseTime(line) },
-		regexp.MustCompile("ends (?P<D>.*);"):                func(l *Lease, line string) { l.Ends = parseTime(line) },
-		regexp.MustCompile("tsfp (?P<D>.*);"):                func(l *Lease, line string) { l.Tsfp = parseTime(line) },
-		regexp.MustCompile("tstp (?P<D>.*);"):                func(l *Lease, line string) { l.Tstp = parseTime(line) },
-		regexp.MustCompile("atsfp (?P<D>.*);"):               func(l *Lease, line string) { l.Atsfp = parseTime(line) },
-		regexp.MustCompile("cltt (?P<D>.*);"):                func(l *Lease, line string) { l.Cltt = parseTime(line) },
-		regexp.MustCompile("uid \"(?P<D>.*)\";"):             func(l *Lease, line string) { l.UID = line },
-		regexp.MustCompile("client-hostname \"(?P<D>.*)\";"): func(l *Lease, line string) { l.ClientHostname = line },
-		regexp.MustCompile("binding state (?P<D>.*);"):       func(l *Lease, line string) { l.BindingState = line },
-		regexp.MustCompile("next binding state (?P<D>.*);"):  func(l *Lease, line string) { l.NextBindingState = line },
+		regexp.MustCompile("(.*) {"):                           func(l *Lease, line string) { l.IP = net.ParseIP(line) },
+		regexp.MustCompile("cltt (?P<D>.*);"):                  func(l *Lease, line string) { l.Cltt = parseTime(line) },
+		regexp.MustCompile("starts (?P<D>.*);"):                func(l *Lease, line string) { l.Starts = parseTime(line) },
+		regexp.MustCompile("ends (?P<D>.*);"):                  func(l *Lease, line string) { l.Ends = parseTime(line) },
+		regexp.MustCompile("tsfp (?P<D>.*);"):                  func(l *Lease, line string) { l.Tsfp = parseTime(line) },
+		regexp.MustCompile("tstp (?P<D>.*);"):                  func(l *Lease, line string) { l.Tstp = parseTime(line) },
+		regexp.MustCompile("atsfp (?P<D>.*);"):                 func(l *Lease, line string) { l.Atsfp = parseTime(line) },
+		regexp.MustCompile("cltt (?P<D>.*);"):                  func(l *Lease, line string) { l.Cltt = parseTime(line) },
+		regexp.MustCompile(`uid "(?P<D>.*)";`):                 func(l *Lease, line string) { l.UID = line },
+		regexp.MustCompile(`client-hostname "(?P<D>.*)";`):     func(l *Lease, line string) { l.ClientHostname = line },
+		regexp.MustCompile(`(?m)^\s*binding state (?P<D>.*);`): func(l *Lease, line string) { l.BindingState = line },
+		regexp.MustCompile("next binding state (?P<D>.*);"):    func(l *Lease, line string) { l.NextBindingState = line },
 		regexp.MustCompile("hardware (?P<D>.*);"): func(l *Lease, line string) {
 			s := strings.SplitN(line, " ", 2)
 			l.Hardware.Hardware = s[0]
