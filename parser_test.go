@@ -3,6 +3,7 @@ package leases
 import (
 	"bytes"
 	"fmt"
+	"net"
 	"testing"
 	"time"
 )
@@ -39,6 +40,39 @@ lease 172.24.43.4 {
 
 	for _, ii := range i {
 		fmt.Println("ip: ", ii.IP)
+	}
+}
+
+func TestParseHost(t *testing.T) {
+	in := []byte(`# The format of this file is documented in the dhcpd.leases(5) manual page.
+# This lease file was written by isc-dhcp-4.2.5
+
+host test1.example.com {
+  dynamic;
+  hardware ethernet 4b:54:ef:7d:c3:0d;
+  fixed-address 10.113.10.24;
+        supersede server.filename = "pxelinux.0";
+        supersede host-name = "test1.example.com";
+}
+host test2.example.com {
+  dynamic;
+  hardware ethernet c5:ea:cf:1e:2f:c9;
+  fixed-address 10.113.10.9;
+        supersede server.filename = "pxelinux.0";
+        supersede host-name = "test2.example.com";
+}
+	`)
+
+	buf := bytes.NewBuffer(in)
+	i := Parse(buf)
+	if i == nil {
+		t.Errorf("Expect one lease")
+	}
+	if i[0].ClientHostname != "test1.example.com" {
+		t.Errorf("Invalid hostname")
+	}
+	if !net.IPv4(10, 113, 10, 24).Equal(i[0].IP) {
+		t.Errorf("Invalid IP: got %s", i[0].IP)
 	}
 }
 
