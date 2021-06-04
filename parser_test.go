@@ -2,8 +2,8 @@ package leases
 
 import (
 	"bytes"
-	"fmt"
 	"net"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -16,11 +16,11 @@ func TestParseLease(t *testing.T) {
 authoring-byte-order little-endian;
 
 lease 172.24.43.3 {
-	starts 6 2019/04/27 03:24:45;
+	starts 6 2019/04/27 03:34:45;
 	ends 6 2019/04/27 03:34:45;
 	tstp 6 2019/04/27 03:34:45;
 	tsfp 6 2019/04/27 03:34:45;
-	cltt 6 2019/04/27 03:24:45;
+	cltt 6 2019/04/27 03:34:45;
 	atsfp 6 2019/04/27 03:34:45;
 	client-hostname "gertrude";
 	binding state active;
@@ -29,17 +29,82 @@ lease 172.24.43.3 {
 	uid "\001\000\333p\303\021\327";
 }
 lease 172.24.43.4 {
-
+  starts 4 2020/04/27 03:34:45;
+  ends 4 2020/04/27 03:34:45;
+  tstp 5 2020/04/27 03:34:45;
+  tsfp 6 2020/04/27 03:34:45;
+  cltt 4 2020/04/27 03:34:45;
+  binding state active;
+  client-hostname "stein";
+  next binding state expired;
+  rewind binding state free;
+  hardware ethernet 01:34:56:67:89:9b;
+  uid "\001xr]?|d";
+  set vendor-class-identifier = "maybe a switch";
+  set vendor-name = "cisco something";
+  option agent.circuit-id 0:4:3:ff:5:1b;
+  option agent.remote-id 3:8:0:10:1:1:a:ad:80:a8;
+}
 `)
 
 	buf := bytes.NewBuffer(in)
-	i := Parse(buf)
-	if i == nil {
-		t.Errorf("Expect one lease")
+	ls := Parse(buf)
+	if len(ls) != 2 {
+		t.Errorf("Expect exactly two leases")
 	}
-
-	for _, ii := range i {
-		fmt.Println("ip: ", ii.IP)
+	t1, _ := time.Parse("2006/01/02 15:04:05", "2019/04/27 03:34:45")
+	hw1, _ := net.ParseMAC("01:34:56:67:89:9a")
+	t2, _ := time.Parse("2006/01/02 15:04:05", "2020/04/27 03:34:45")
+	hw2, _ := net.ParseMAC("01:34:56:67:89:9b")
+	want := []Lease{
+		{
+			IP:                 net.ParseIP("172.24.43.3"),
+			Starts:             t1,
+			Ends:               t1,
+			Tstp:               t1,
+			Tsfp:               t1,
+			Atsfp:              t1,
+			Cltt:               t1,
+			BindingState:       "active",
+			NextBindingState:   "free",
+			RewindBindingState: "",
+			Hardware: HardWare{
+				Hardware: "ethernet",
+				MAC:      "01:34:56:67:89:9a",
+				MACAddr:  hw1,
+			},
+			UID:            `\001\000\333p\303\021\327`,
+			ClientHostname: "gertrude",
+			VendorClassID:  "",
+			VendorName:     "",
+			RelayCircuitId: "",
+			RelayRemoteId:  "",
+		},
+		{
+			IP:                 net.ParseIP("172.24.43.4"),
+			Starts:             t2,
+			Ends:               t2,
+			Tstp:               t2,
+			Tsfp:               t2,
+			Cltt:               t2,
+			BindingState:       "active",
+			NextBindingState:   "expired",
+			RewindBindingState: "free",
+			Hardware: HardWare{
+				Hardware: "ethernet",
+				MAC:      "01:34:56:67:89:9b",
+				MACAddr:  hw2,
+			},
+			UID:            `\001xr]?|d`,
+			ClientHostname: "stein",
+			VendorClassID:  "maybe a switch",
+			VendorName:     "cisco something",
+			RelayCircuitId: "0:4:3:ff:5:1b",
+			RelayRemoteId:  "3:8:0:10:1:1:a:ad:80:a8",
+		},
+	}
+	if !reflect.DeepEqual(want, ls) {
+		t.Fatalf("expected:\n%+v\ngot:\n%+v", want, ls)
 	}
 }
 
@@ -76,7 +141,7 @@ host test2.example.com {
 	}
 }
 
-func TestParse(t *testing.T) {
+func TestParseTime(t *testing.T) {
 	a := parseTime("6 2019/04/27 03:34:45")
 	ex := time.Date(2019, 4, 27, 3, 34, 45, 0, time.UTC)
 
