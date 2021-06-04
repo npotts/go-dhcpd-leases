@@ -184,3 +184,12 @@ func (l *Lease) parse(s []byte) {
 		}
 	}
 }
+
+func (l *Lease) String() string {
+	var buf bytes.Buffer
+	t := template.Must(template.New("lease").Parse(leaseString))
+	if err := t.Execute(&buf, l); err != nil {
+		fmt.Println("Failed executing template: ", err)
+	}
+	return buf.String()
+}
