@@ -99,8 +99,13 @@ var (
 )
 
 /*parseTime from the off format of "6 2019/04/27 03:34:45;" adn returns a time struct*/
-func parseTime(s string) time.Time {
-	t, _ := time.Parse("2006/01/02 15:04:05", s[2:])
+func parseTime(s string) (t time.Time) {
+	match := regexp.MustCompile(`[a-zA-Z]{2,}$`)
+	if match.MatchString(s) {
+		t, _ = time.Parse("2006/01/02 15:04:05 MST", s[2:])
+	} else {
+		t, _ = time.Parse("2006/01/02 15:04:05", s[2:])
+	}
 	return t
 }
 
