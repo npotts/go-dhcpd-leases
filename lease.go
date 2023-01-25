@@ -3,9 +3,11 @@ package leases
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"net"
 	"regexp"
 	"strings"
+	"text/template"
 	"time"
 )
 
@@ -44,7 +46,7 @@ type Lease struct {
 	Tsfp time.Time `json:"tsfp"`
 
 	//Atsfp is the actual time sent from the failover partner
-	Atsfp time.Time `json:"atsfp"`
+	Atsfp time.Time `json:"atsfp,omitempty"`
 
 	//Cltt is the client's last transaction time
 	Cltt time.Time `json:"cllt"`
@@ -59,34 +61,84 @@ type Lease struct {
 	//The next binding state statement indicates what state the lease will move to when the current state expires. The time when the current state expires is specified in the ends statement.
 	NextBindingState string `json:"next-binding-state"`
 
+	/*Rewind binding state is used in failover. If the two servers go into communications-interrupted mode where they lose contact with each
+	other, normally a particular server can only hand out new leases from	its share of the free pool. The idea is to allow it to reset the
+	binding state of a lease so that it can re-issue the IP address*/
+	RewindBindingState string `json:"rewind-binding-state"`
+
 	//The hardware statement records the MAC address of the network interface on which the lease will be used. It is specified as a series of hexadecimal octets, separated by colons.
-	Hardware struct {
-		Hardware string           `json:"hardware"`
-		MAC      string           `json:"mac"`
-		MACAddr  net.HardwareAddr `json:"-"`
-	} `json:"hardware"`
+	Hardware HardWare `json:"hardware"`
 
 	//The uid statement records the client identifier used by the client to acquire the lease. Clients are not required to send client identifiers, and this statement only appears if the client did in fact send one. Client identifiers are normally an ARP type (1 for ethernet) followed by the MAC address, just like in the hardware statement, but this is not required.
 	UID string `json:"uid"`
 
 	//Clients provided hostname
 	ClientHostname string `json:"client-hostname"`
+
+	//Optional settings for the lease, e.g., as the result of conditional evaluation performed by the server for the packet
+	VendorClassID string `json:"vendor-class-identifier"`
+	VendorName    string `json:"vendor-nmae"`
+
+	//Optional circuit and remote ID suboption values if provided by the relay agent
+	RelayCircuitId string
+	RelayRemoteId  string
 }
+
+type HardWare struct {
+	Hardware string           `json:"hardware"`
+	MAC      string           `json:"mac"`
+	MACAddr  net.HardwareAddr `json:"-"`
+}
+
+const leaseString = `
+lease {{.IP}} {
+  starts 4 {{.Starts.Format "2006/01/02 15:04:05"}};
+  ends 4 {{.Ends.Format "2006/01/02 15:04:05"}};
+  tstp 5 {{.Tstp.Format "2006/01/02 15:04:05"}};
+  tsfp 6 {{.Tsfp.Format "2006/01/02 15:04:05"}};
+  cltt 4 {{.Cltt.Format "2006/01/02 15:04:05"}};
+  binding state {{.BindingState}};
+  client-hostname "{{.ClientHostname}}";
+  next binding state {{.NextBindingState}};
+  hardware ethernet {{.Hardware.MAC}};
+  uid "{{.UID}}";
+{{- if not .Atsfp.IsZero}}
+  cltt 4 {{.Atsfp.Format "2006/01/02 15:04:05"}};{{end}}
+{{- if .RewindBindingState}}
+  rewind binding state {{.RewindBindingState}};{{end}}
+{{- if .VendorClassID}}
+  set vendor-class-identifier = "{{.VendorClassID}}";{{end}}
+{{- if .VendorName}}
+  set vendor-name = "{{.VendorName}}";{{end}}
+{{- if .RelayCircuitId}}
+  option agent.circuit-id {{.RelayCircuitId}};{{end}}
+{{- if .RelayRemoteId}}
+  option agent.remote-id {{.RelayRemoteId}};{{end}}
+}
+`
 
 var (
 	decoders = map[*regexp.Regexp]func(*Lease, string){
-		regexp.MustCompile("(.*) {"):                           func(l *Lease, line string) { l.IP = net.ParseIP(line) },
-		regexp.MustCompile("cltt (?P<D>.*);"):                  func(l *Lease, line string) { l.Cltt = parseTime(line) },
-		regexp.MustCompile("starts (?P<D>.*);"):                func(l *Lease, line string) { l.Starts = parseTime(line) },
-		regexp.MustCompile("ends (?P<D>.*);"):                  func(l *Lease, line string) { l.Ends = parseTime(line) },
-		regexp.MustCompile("tsfp (?P<D>.*);"):                  func(l *Lease, line string) { l.Tsfp = parseTime(line) },
-		regexp.MustCompile("tstp (?P<D>.*);"):                  func(l *Lease, line string) { l.Tstp = parseTime(line) },
-		regexp.MustCompile("atsfp (?P<D>.*);"):                 func(l *Lease, line string) { l.Atsfp = parseTime(line) },
-		regexp.MustCompile("cltt (?P<D>.*);"):                  func(l *Lease, line string) { l.Cltt = parseTime(line) },
-		regexp.MustCompile(`uid "(?P<D>.*)";`):                 func(l *Lease, line string) { l.UID = line },
-		regexp.MustCompile(`client-hostname "(?P<D>.*)";`):     func(l *Lease, line string) { l.ClientHostname = line },
-		regexp.MustCompile(`(?m)^\s*binding state (?P<D>.*);`): func(l *Lease, line string) { l.BindingState = line },
-		regexp.MustCompile("next binding state (?P<D>.*);"):    func(l *Lease, line string) { l.NextBindingState = line },
+		regexp.MustCompile("lease ([\\d\\.]+) {"):                        func(l *Lease, line string) { l.IP = net.ParseIP(line) },
+		regexp.MustCompile("host (.*) {"):                                func(l *Lease, line string) { l.ClientHostname = line },
+		regexp.MustCompile("fixed-address (.*);"):                        func(l *Lease, line string) { l.IP = net.ParseIP(line) },
+		regexp.MustCompile("cltt (?P<D>.*);"):                            func(l *Lease, line string) { l.Cltt = parseTime(line) },
+		regexp.MustCompile("starts (?P<D>.*);"):                          func(l *Lease, line string) { l.Starts = parseTime(line) },
+		regexp.MustCompile("ends (?P<D>.*);"):                            func(l *Lease, line string) { l.Ends = parseTime(line) },
+		regexp.MustCompile("tsfp (?P<D>.*);"):                            func(l *Lease, line string) { l.Tsfp = parseTime(line) },
+		regexp.MustCompile("tstp (?P<D>.*);"):                            func(l *Lease, line string) { l.Tstp = parseTime(line) },
+		regexp.MustCompile("atsfp (?P<D>.*);"):                           func(l *Lease, line string) { l.Atsfp = parseTime(line) },
+		regexp.MustCompile("cltt (?P<D>.*);"):                            func(l *Lease, line string) { l.Cltt = parseTime(line) },
+		regexp.MustCompile(`uid "(?P<D>.*)";`):                           func(l *Lease, line string) { l.UID = line },
+		regexp.MustCompile(`client-hostname "(?P<D>.*)";`):               func(l *Lease, line string) { l.ClientHostname = line },
+		regexp.MustCompile(`(?m)^\s*binding state (?P<D>.*);`):           func(l *Lease, line string) { l.BindingState = line },
+		regexp.MustCompile("next binding state (?P<D>.*);"):              func(l *Lease, line string) { l.NextBindingState = line },
+		regexp.MustCompile("rewind binding state (?P<D>.*);"):            func(l *Lease, line string) { l.RewindBindingState = line },
+		regexp.MustCompile(`option agent.circuit-id (?P<D>.*);`):         func(l *Lease, line string) { l.RelayCircuitId = line },
+		regexp.MustCompile(`option agent.remote-id (?P<D>.*);`):          func(l *Lease, line string) { l.RelayRemoteId = line },
+		regexp.MustCompile(`set vendor-class-identifier = "(?P<D>.*)";`): func(l *Lease, line string) { l.VendorClassID = line },
+		regexp.MustCompile(`set vendor-name = "(?P<D>.*)";`):             func(l *Lease, line string) { l.VendorName = line },
+
 		regexp.MustCompile("hardware (?P<D>.*);"): func(l *Lease, line string) {
 			s := strings.SplitN(line, " ", 2)
 			l.Hardware.Hardware = s[0]
@@ -131,4 +183,13 @@ func (l *Lease) parse(s []byte) {
 			}
 		}
 	}
+}
+
+func (l *Lease) String() string {
+	var buf bytes.Buffer
+	t := template.Must(template.New("lease").Parse(leaseString))
+	if err := t.Execute(&buf, l); err != nil {
+		fmt.Println("Failed executing template: ", err)
+	}
+	return buf.String()
 }
