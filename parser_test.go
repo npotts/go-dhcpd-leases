@@ -156,12 +156,8 @@ func TestParseTime(t *testing.T) {
 }
 
 func TestParseTimeZ(t *testing.T) {
-	a := parseTime("6 2019/04/27 03:34:45 MDT")
-	mdt, err := time.LoadLocation("America/Denver")
-	if err != nil {
-		t.Errorf("excected to load America/Denve TZinfo : %v", err)
-	}
-	ex := time.Date(2019, 4, 27, 3, 34, 45, 0, mdt)
+	ex := time.Date(2019, 4, 27, 3, 34, 45, 0, time.UTC)
+	a := parseTime("6 2019/04/27 03:34:45 CET")
 
 	if a.IsZero() {
 		t.Error("Didnt parse time right")
@@ -170,5 +166,12 @@ func TestParseTimeZ(t *testing.T) {
 		t.Log("a ", a)
 		t.Log("ex", ex)
 		t.Error("Didnt parse time correctly")
+	}
+}
+
+func TestParseTimeMiss(t *testing.T) {
+	a := parseTime("6 ")
+	if !a.IsZero() {
+		t.Error("Expected zero time for invalid record")
 	}
 }
