@@ -27,28 +27,27 @@ A Lease contains the data specified in the following format:
 		hardware ethernet 00:db:70:c3:11:d7;
 		uid "\001\000\333p\303\021\327";
 	}
-
 */
 type Lease struct {
-	//IP address given to the lease
+	// IP address given to the lease
 	IP net.IP `json:"ip"`
 
-	//Start time of the lease
+	// Start time of the lease
 	Starts time.Time `json:"starts"`
 
-	//Time when the lease expires
+	// Time when the lease expires
 	Ends time.Time `json:"ends"`
 
-	//Tstp is specified if the failover protocol is being used, and indicates what time the peer has been told the lease expires.
+	// Tstp is specified if the failover protocol is being used, and indicates what time the peer has been told the lease expires.
 	Tstp time.Time `json:"tstp"`
 
-	//Tsfp is also specified if the failover protocol is being used, and indicates the lease expiry time that the peer has acknowledged
+	// Tsfp is also specified if the failover protocol is being used, and indicates the lease expiry time that the peer has acknowledged
 	Tsfp time.Time `json:"tsfp"`
 
-	//Atsfp is the actual time sent from the failover partner
+	// Atsfp is the actual time sent from the failover partner
 	Atsfp time.Time `json:"atsfp,omitempty"`
 
-	//Cltt is the client's last transaction time
+	// Cltt is the client's last transaction time
 	Cltt time.Time `json:"cllt"`
 
 	/*The binding state statement declares the lease's binding state. When the DHCP server is
@@ -58,7 +57,7 @@ type Lease struct {
 	by the failover secondary.*/
 	BindingState string `json:"binding-state"`
 
-	//The next binding state statement indicates what state the lease will move to when the current state expires. The time when the current state expires is specified in the ends statement.
+	// The next binding state statement indicates what state the lease will move to when the current state expires. The time when the current state expires is specified in the ends statement.
 	NextBindingState string `json:"next-binding-state"`
 
 	/*Rewind binding state is used in failover. If the two servers go into communications-interrupted mode where they lose contact with each
@@ -66,25 +65,26 @@ type Lease struct {
 	binding state of a lease so that it can re-issue the IP address*/
 	RewindBindingState string `json:"rewind-binding-state"`
 
-	//The hardware statement records the MAC address of the network interface on which the lease will be used. It is specified as a series of hexadecimal octets, separated by colons.
-	Hardware HardWare `json:"hardware"`
+	// The hardware statement records the MAC address of the network interface on which the lease will be used. It is specified as a series of hexadecimal octets, separated by colons.
+	Hardware Hardware `json:"hardware"`
 
-	//The uid statement records the client identifier used by the client to acquire the lease. Clients are not required to send client identifiers, and this statement only appears if the client did in fact send one. Client identifiers are normally an ARP type (1 for ethernet) followed by the MAC address, just like in the hardware statement, but this is not required.
+	// The uid statement records the client identifier used by the client to acquire the lease. Clients are not required to send client identifiers, and this statement only appears if the client did in fact send one. Client identifiers are normally an ARP type (1 for ethernet) followed by the MAC address, just like in the hardware statement, but this is not required.
 	UID string `json:"uid"`
 
-	//Clients provided hostname
+	// Clients provided hostname
 	ClientHostname string `json:"client-hostname"`
 
-	//Optional settings for the lease, e.g., as the result of conditional evaluation performed by the server for the packet
+	// Optional settings for the lease, e.g., as the result of conditional evaluation performed by the server for the packet
 	VendorClassID string `json:"vendor-class-identifier"`
 	VendorName    string `json:"vendor-nmae"`
 
-	//Optional circuit and remote ID suboption values if provided by the relay agent
+	// Optional circuit and remote ID suboption values if provided by the relay agent
 	RelayCircuitId string
 	RelayRemoteId  string
 }
 
-type HardWare struct {
+// Hardware is a representaion of the MAC and hardware types"
+type Hardware struct {
 	Hardware string           `json:"hardware"`
 	MAC      string           `json:"mac"`
 	MACAddr  net.HardwareAddr `json:"-"`
@@ -163,7 +163,8 @@ func parseTime(s string) (t time.Time) {
 	return t
 }
 
-/*parse takes a byte slice that looks like:
+/*
+parse takes a byte slice that looks like:
 
 	172.24.43.3 {
 		starts 6 2019/04/27 03:24:45;
