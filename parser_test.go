@@ -68,7 +68,7 @@ lease 172.24.43.4 {
 			BindingState:       "active",
 			NextBindingState:   "free",
 			RewindBindingState: "",
-			Hardware: HardWare{
+			Hardware: Hardware{
 				Hardware: "ethernet",
 				MAC:      "01:34:56:67:89:9a",
 				MACAddr:  hw1,
@@ -90,7 +90,7 @@ lease 172.24.43.4 {
 			BindingState:       "active",
 			NextBindingState:   "expired",
 			RewindBindingState: "free",
-			Hardware: HardWare{
+			Hardware: Hardware{
 				Hardware: "ethernet",
 				MAC:      "01:34:56:67:89:9b",
 				MACAddr:  hw2,
@@ -152,5 +152,26 @@ func TestParseTime(t *testing.T) {
 		t.Log("a ", a)
 		t.Log("ex", ex)
 		t.Error("Didnt parse time correctly")
+	}
+}
+
+func TestParseTimeZ(t *testing.T) {
+	ex := time.Date(2019, 4, 27, 3, 34, 45, 0, time.UTC)
+	a := parseTime("6 2019/04/27 03:34:45 CET")
+
+	if a.IsZero() {
+		t.Error("Didnt parse time right")
+	}
+	if !a.Equal(ex) {
+		t.Log("a ", a)
+		t.Log("ex", ex)
+		t.Error("Didnt parse time correctly")
+	}
+}
+
+func TestParseTimeMiss(t *testing.T) {
+	a := parseTime("6 ")
+	if !a.IsZero() {
+		t.Error("Expected zero time for invalid record")
 	}
 }
