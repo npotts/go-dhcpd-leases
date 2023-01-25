@@ -1,0 +1,21 @@
+---
+name: Testing and Linting
+on:
+  push:
+    tags:
+      - v*
+    branches:
+      - master
+      - main
+  pull_request:
+
+jobs:
+  test:
+    name: package testing
+    container: golang:1.19-bullseye
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+      - name: Test
+        run: go test ./...
