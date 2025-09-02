@@ -10,7 +10,7 @@ import (
 var (
 	lkwd       = []byte("\nlease ")
 	hkwd       = []byte("\nhost ")
-	closeParen = []byte("}")
+	closeParen = []byte("\n}")
 )
 
 /*Parse reads from a dhcpd.leases file and returns a list of leases.  Unknown fields are ignored
